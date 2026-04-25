@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "Message": {
+      "title": "Message",
+      "description": "A contact message from the website",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "number", "description": "Server timestamp" }
+      },
+      "required": ["name", "email", "message", "createdAt"]
+    },
+    "PortfolioItem": {
+      "title": "PortfolioItem",
+      "description": "An item in the portfolio catalog",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "mediaType": { "type": "string", "enum": ["image", "video", "animation"] },
+        "client": { "type": "string" },
+        "isFavorite": { "type": "boolean" },
+        "isBestMedia": { "type": "boolean" },
+        "createdAt": { "type": "number", "description": "Server timestamp" },
+        "updatedAt": { "type": "number", "description": "Server timestamp" }
+      },
+      "required": ["title", "category", "mediaUrl", "mediaType", "createdAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "An announcement for the agency",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "isVisible": { "type": "boolean" },
+        "createdAt": { "type": "number", "description": "Server timestamp" },
+        "updatedAt": { "type": "number", "description": "Server timestamp" }
+      },
+      "required": ["title", "content", "isVisible", "createdAt"]
+    }
+  },
+  "firestore": {
+    "messages": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Messages submitted via the contact form"
+    },
+    "portfolio": {
+      "schema": { "$ref": "#/entities/PortfolioItem" },
+      "description": "Portfolio catalog items"
+    },
+    "announcements": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Announcements displayed on the site"
+    }
+  }
+}

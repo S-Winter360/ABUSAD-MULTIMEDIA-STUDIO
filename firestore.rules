@@ -1,0 +1,91 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { 
+      return isSignedIn() && (request.auth.token.email == 'abubakarsadique575@gmail.com' || request.auth.token.email == 'nashirumanaf@gmail.com'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // Validation Helpers
+    function isValidMessage(data) {
+      return data.keys().hasAll(['name', 'email', 'message', 'createdAt']) 
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 150
+        && data.message is string && data.message.size() > 0 && data.message.size() <= 2000
+        && (data.keys().hasAny(['phone']) == false || (data.phone is string && data.phone.size() <= 20))
+        && data.createdAt == request.time;
+    }
+
+    function isValidPortfolioItemCreate(data) {
+      return data.keys().hasAll(['title', 'category', 'mediaUrl', 'mediaType', 'createdAt'])
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 150
+        && data.category is string && data.category.size() > 0 && data.category.size() <= 50
+        && data.mediaUrl is string && data.mediaUrl.size() > 0 && data.mediaUrl.size() <= 1000
+        && data.mediaType is string && data.mediaType.matches('^(image|video|animation)$')
+        && (data.keys().hasAny(['client']) == false || (data.client is string && data.client.size() <= 100))
+        && (data.keys().hasAny(['isFavorite']) == false || data.isFavorite is bool)
+        && (data.keys().hasAny(['isBestMedia']) == false || data.isBestMedia is bool)
+        && data.createdAt == request.time
+        && (data.keys().hasAny(['updatedAt']) == false || data.updatedAt == request.time);
+    }
+
+    function isValidPortfolioItemUpdate(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 150
+        && data.category is string && data.category.size() > 0 && data.category.size() <= 50
+        && data.mediaUrl is string && data.mediaUrl.size() > 0 && data.mediaUrl.size() <= 1000
+        && data.mediaType is string && data.mediaType.matches('^(image|video|animation)$')
+        && (data.keys().hasAny(['client']) == false || (data.client is string && data.client.size() <= 100))
+        && (data.keys().hasAny(['isFavorite']) == false || data.isFavorite is bool)
+        && (data.keys().hasAny(['isBestMedia']) == false || data.isBestMedia is bool)
+        && data.createdAt == existing().createdAt
+        && data.updatedAt == request.time;
+    }
+
+    function isValidAnnouncementCreate(data) {
+      return data.keys().hasAll(['title', 'content', 'isVisible', 'createdAt'])
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.content is string && data.content.size() > 0 && data.content.size() <= 5000
+        && data.isVisible is bool
+        && data.createdAt == request.time
+        && (data.keys().hasAny(['updatedAt']) == false || data.updatedAt == request.time);
+    }
+
+    function isValidAnnouncementUpdate(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.content is string && data.content.size() > 0 && data.content.size() <= 5000
+        && data.isVisible is bool
+        && data.createdAt == existing().createdAt
+        && data.updatedAt == request.time;
+    }
+
+    match /messages/{messageId} {
+      allow create: if isValidMessage(incoming()) && incoming().keys().hasOnly(['name', 'email', 'phone', 'message', 'createdAt']);
+      allow read: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /portfolio/{itemId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidPortfolioItemCreate(incoming()) && incoming().keys().hasOnly(['title', 'category', 'mediaUrl', 'mediaType', 'client', 'isFavorite', 'isBestMedia', 'createdAt', 'updatedAt']);
+      allow update: if isAdmin() && isValidPortfolioItemUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'category', 'mediaUrl', 'mediaType', 'client', 'isFavorite', 'isBestMedia', 'updatedAt']);
+      allow delete: if isAdmin();
+    }
+
+    match /announcements/{announcementId} {
+      // Anyone can read visible announcements, admins can read all
+      allow read: if true;
+      allow create: if isAdmin() && isValidAnnouncementCreate(incoming()) && incoming().keys().hasOnly(['title', 'content', 'isVisible', 'createdAt', 'updatedAt']);
+      allow update: if isAdmin() && isValidAnnouncementUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'isVisible', 'updatedAt']);
+      allow delete: if isAdmin();
+    }
+  }
+}
